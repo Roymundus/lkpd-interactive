@@ -8,15 +8,15 @@ export const generatePDF = async (pdfRef, fileName = 'LKPD_Siswa.pdf') => {
       throw new Error('Elemen PDF tidak ditemukan di dalam DOM.');
     }
 
-    // Pastikan elemen siap dibaca
     const canvas = await html2canvas(element, {
-      scale: 2, // Skala 2 untuk kualitas gambar yang tajam
+      scale: 1.5, // Menggunakan skala 1.5 agar lebih stabil dan ringan
       useCORS: true,
-      logging: false,
-      windowWidth: element.scrollWidth,
+      allowTaint: true,
+      logging: true,
+      windowWidth: 794, // Lebar standar A4 dalam piksel (96 DPI)
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const imgData = canvas.toDataURL('image/jpeg', 0.90);
     const pdf = new jsPDF('p', 'mm', 'a4');
     
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -26,11 +26,9 @@ export const generatePDF = async (pdfRef, fileName = 'LKPD_Siswa.pdf') => {
     let heightLeft = pdfHeight;
     let position = 0;
 
-    // Cetak halaman pertama
     pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
     heightLeft -= pageHeight;
 
-    // Jika konten lebih dari 1 halaman A4, buat halaman baru secara otomatis
     while (heightLeft > 0) {
       position = heightLeft - pdfHeight;
       pdf.addPage();
@@ -40,7 +38,7 @@ export const generatePDF = async (pdfRef, fileName = 'LKPD_Siswa.pdf') => {
 
     pdf.save(fileName);
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    alert('Terjadi kesalahan saat mengunduh PDF. Pastikan koneksi stabil dan coba lagi.');
+    console.error('DETAIL ERROR PDF:', error);
+    alert(`Gagal membuat PDF: ${error.message || 'Kesalahan tidak diketahui'}`);
   }
 };

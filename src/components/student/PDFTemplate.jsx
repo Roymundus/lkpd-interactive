@@ -2,19 +2,38 @@ import React, { forwardRef } from 'react';
 
 const PDFTemplate = forwardRef(({ lkpd, answers }, ref) => {
   return (
-    <div style={{ position: 'absolute', left: '-9999px', top: '0px', width: '210mm', background: 'white' }}>
-      <div ref={ref} className="p-8 bg-white text-slate-800 font-sans" style={{ width: '210mm', boxSizing: 'border-box' }}>
+    <div style={{ position: 'absolute', left: '-9999px', top: '0px', width: '210mm', background: '#ffffff' }}>
+      <div 
+        ref={ref} 
+        style={{ 
+          width: '210mm', 
+          padding: '40px', 
+          backgroundColor: '#ffffff', 
+          color: '#1e293b', 
+          fontFamily: 'Arial, sans-serif',
+          boxSizing: 'border-box' 
+        }}
+      >
         
         {/* Header Dokumen PDF */}
-        <div className="border-b-2 border-slate-800 pb-4 mb-6">
-          <h1 className="text-2xl font-bold uppercase tracking-wide">{lkpd?.title || 'LKPD'}</h1>
-          <p className="text-sm text-slate-600 mt-1">Mata Pelajaran: {lkpd?.subject || '-'}</p>
+        <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '24px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', backgroundColor: '#2563eb', color: '#ffffff', padding: '4px 8px', borderRadius: '4px' }}>
+            {lkpd?.subject || 'Informatika'}
+          </span>
+          <h1 style={{ fontSize: '22px', fontWeight: 'bold', marginTop: '8px', color: '#0f172a' }}>
+            {lkpd?.title || 'LKPD'}
+          </h1>
+          <p style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+            {lkpd?.instructions || ''}
+          </p>
         </div>
 
         {/* Data Identitas Siswa */}
-        <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <h3 className="text-xs font-bold uppercase text-slate-500 mb-2">Identitas Siswa</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+        <div style={{ marginBottom: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <h3 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#64748b', marginBottom: '8px' }}>
+            Identitas Siswa
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
             <p><strong>Nama:</strong> {answers?.identity?.name || '-'}</p>
             <p><strong>Kelas:</strong> {answers?.identity?.className || '-'}</p>
             <p><strong>Nomor Absen:</strong> {answers?.identity?.studentId || '-'}</p>
@@ -22,15 +41,17 @@ const PDFTemplate = forwardRef(({ lkpd, answers }, ref) => {
         </div>
 
         {/* Daftar Jawaban Soal */}
-        <div className="space-y-6">
-          <h3 className="text-xs font-bold uppercase text-slate-500 border-b pb-1">Lembar Jawaban</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#64748b', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
+            Lembar Jawaban
+          </h3>
           {lkpd?.questions?.map((q, idx) => (
-            <div key={q.id || idx} className="space-y-2">
-              <p className="text-sm font-semibold text-slate-800">
+            <div key={q.id || idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+              <p style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
                 {idx + 1}. {q.questionText}
               </p>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm min-h-[40px] whitespace-pre-wrap">
-                {answers?.responses?.[q.id] || <span className="text-slate-400 italic">Tidak dijawab</span>}
+              <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', minHeight: '40px', whiteSpace: 'pre-wrap', color: '#334155' }}>
+                {answers?.responses?.[q.id] || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Tidak dijawab</span>}
               </div>
             </div>
           ))}
