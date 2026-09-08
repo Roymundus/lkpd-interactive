@@ -69,6 +69,17 @@ export default function AdminDashboard({ onSaveLKPD, currentLKPD }) {
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
+  // Salin Link LKPD
+  // Tambahkan fungsi salin tautan di AdminDashboard.jsx
+  const handleCopyLink = () => {
+    const vercelDomain = window.location.origin; // Mengambil domain aktif (localhost / vercel)
+    const shareUrl = `${vercelDomain}/?id=${lkpdMeta.id}`;
+    
+    navigator.clipboard.writeText(shareUrl);
+    alert(`Tautan berhasil disalin:\n${shareUrl}`);
+  };
+
+
   return (
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -96,6 +107,14 @@ export default function AdminDashboard({ onSaveLKPD, currentLKPD }) {
                 <Save className="w-4 h-4" /> Simpan LKPD
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg border border-slate-300 flex items-center gap-2"
+          >
+            Salin Tautan Siswa
           </button>
         </div>
 
