@@ -1,61 +1,60 @@
 import React from 'react';
-import { User, GraduationCap, Hash } from 'lucide-react';
+import { User, Layers, Hash } from 'lucide-react';
 
 export default function IdentityForm({ identity, onChange }) {
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    onChange((prev) => ({ ...prev, [name]: value }));
+  const handleChange = (field, value) => {
+    if (typeof onChange === 'function') {
+      onChange(field, value);
+    }
   };
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4 pb-2 border-b border-slate-100">
-        Identitas Peserta Didik
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6 space-y-4">
+      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
+        <User className="w-4 h-4 text-blue-500" /> Identitas Siswa
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Nama Lengkap</label>
-          <div className="relative">
-            <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              name="name"
-              value={identity.name || ''}
-              onChange={handleChange}
-              placeholder="Contoh: Ahmad Fauzi"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-            />
-          </div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
+            <User className="w-3 h-3 text-slate-400" /> Nama Lengkap
+          </label>
+          <input
+            type="text"
+            name="name"
+            value={identity?.name || ''}
+            onChange={(e) => handleChange('name', e.target.value)}
+            placeholder="Masukkan nama lengkap..."
+            className="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Kelas</label>
-          <div className="relative">
-            <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              name="className"
-              value={identity.className || ''}
-              onChange={handleChange}
-              placeholder="Contoh: X RPL 1"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-            />
-          </div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
+            <Layers className="w-3 h-3 text-slate-400" /> Kelas
+          </label>
+          <input
+            type="text"
+            name="className"
+            value={identity?.className || ''}
+            onChange={(e) => handleChange('className', e.target.value)}
+            placeholder="Contoh: XII TKJ 1"
+            className="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Nomor Absen</label>
-          <div className="relative">
-            <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              name="studentId"
-              value={identity.studentId || ''}
-              onChange={handleChange}
-              placeholder="Contoh: 05"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-            />
-          </div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
+            <Hash className="w-3 h-3 text-slate-400" /> Nomor Absen
+          </label>
+          <input
+            type="text"
+            name="studentId"
+            value={identity?.studentId || ''}
+            onChange={(e) => handleChange('studentId', e.target.value)}
+            placeholder="Contoh: 15"
+            className="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
       </div>
     </div>

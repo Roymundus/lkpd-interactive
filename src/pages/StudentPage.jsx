@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useAutoSave } from '../hooks/useAutoSave';
 import IdentityForm from '../components/student/IdentityForm';
 import QuestionView from '../components/student/QuestionView';
 import PDFTemplate from '../components/student/PDFTemplate';
 import { generatePDF } from '../utils/generatePDF';
 import { Save, Download, Loader2 } from 'lucide-react';
+import { supabase } from '../utils/supabase';
 
 const sampleLKPD = {
   id: 'lkpd-01',
@@ -38,18 +39,60 @@ const sampleLKPD = {
 };
 
 export default function StudentPage({ lkpdData }) {
-  const lkpd = lkpdData || sampleLKPD;
-  const [answers, setAnswers] = useAutoSave(`lkpd_answers_${lkpd.id}`, {
+  const [lkpd, setLkpd] = useState(lkpdData || null);
+  const [isLoading, setIsLoading] = useState(!lkpdData);
+
+  useEffect(() => {
+    if (!lkpdData) {
+      const params = new URLSearchParams(window.location.search);
+      const lkpdId = params.get('id');
+
+      if (lkpdId) {
+        fetchLkpd(lkpdId);
+      } else {
+        setLkpd(sampleLKPD);
+        setIsLoading(false);
+      }
+    }
+  }, [lkpdData]);
+
+  const fetchLkpd = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('lkpds')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setLkpd(data);
+      }
+    } catch (err) {
+      console.error('Gagal memuat LKPD:', err);
+      setLkpd(sampleLKPD);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const [answers, setAnswers] = useAutoSave(lkpd ? `lkpd_answers_${lkpd.id}` : 'lkpd_answers_temp', {
     identity: { name: '', className: '', studentId: '' },
     responses: {},
   });
-  // Gunakan 'lkpd' sebagai pengganti 'sampleLKPD' di seluruh StudentPage & PDFTemplate
 
   const [isExporting, setIsExporting] = useState(false);
   const pdfRef = useRef(null);
 
-  const handleIdentityChange = (newIdentity) => {
-    setAnswers((prev) => ({ ...prev, identity: newIdentity }));
+  // Penanganan perubahan identitas yang bersih
+  const handleIdentityChange = (field, value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      identity: {
+        ...prev.identity,
+        [field]: value,
+      },
+    }));
   };
 
   const handleQuestionChange = (questionId, value) => {
@@ -63,7 +106,7 @@ export default function StudentPage({ lkpdData }) {
   };
 
   const handleDownloadPDF = async () => {
-    const { name, className } = answers.identity;
+    const { name, className } = answers.identity || {};
 
     if (!name || !className) {
       alert('Silakan isi Nama Lengkap dan Kelas pada bagian Identitas terlebih dahulu!');
@@ -79,16 +122,27 @@ export default function StudentPage({ lkpdData }) {
     setIsExporting(false);
   };
 
+  if (isLoading || !lkpd) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+          <span>Memuat halaman siswa...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* Header LKPD */}
         <div className="bg-blue-600 text-white p-6 rounded-xl shadow-md mb-6">
           <span className="text-xs font-semibold tracking-wide uppercase bg-blue-500 px-2.5 py-1 rounded-md">
-            {sampleLKPD.subject}
+            {lkpd.subject}
           </span>
-          <h1 className="text-xl sm:text-2xl font-bold mt-2">{sampleLKPD.title}</h1>
-          <p className="text-blue-100 text-xs sm:text-sm mt-1">{sampleLKPD.instructions}</p>
+          <h1 className="text-xl sm:text-2xl font-bold mt-2">{lkpd.title}</h1>
+          <p className="text-blue-100 text-xs sm:text-sm mt-1">{lkpd.instructions}</p>
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-blue-500/50">
             <div className="flex items-center gap-1.5 text-xs text-blue-200">
               <Save className="w-3.5 h-3.5" />
@@ -101,15 +155,21 @@ export default function StudentPage({ lkpdData }) {
         <IdentityForm identity={answers.identity} onChange={handleIdentityChange} />
 
         {/* Daftar Soal */}
-        {sampleLKPD.questions.map((q, index) => (
-          <QuestionView
-            key={q.id}
-            number={index + 1}
-            question={q}
-            answer={answers.responses[q.id]}
-            onChange={(val) => handleQuestionChange(q.id, val)}
-          />
-        ))}
+        {lkpd.questions && lkpd.questions.length > 0 ? (
+          lkpd.questions.map((q, index) => (
+            <QuestionView
+              key={q.id || index}
+              number={index + 1}
+              question={q}
+              answer={answers.responses?.[q.id]}
+              onChange={(val) => handleQuestionChange(q.id, val)}
+            />
+          ))
+        ) : (
+          <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-500 my-4">
+            Belum ada soal pada LKPD ini.
+          </div>
+        )}
 
         {/* Tombol Download PDF */}
         <div className="mt-8 mb-12 flex flex-col items-center">
@@ -137,7 +197,7 @@ export default function StudentPage({ lkpdData }) {
         </div>
 
         {/* Template PDF Tersembunyi */}
-        <PDFTemplate ref={pdfRef} lkpd={sampleLKPD} answers={answers} />
+        <PDFTemplate ref={pdfRef} lkpd={lkpd} answers={answers} />
       </div>
     </div>
   );

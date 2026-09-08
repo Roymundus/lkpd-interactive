@@ -1,22 +1,46 @@
-import html2pdf from 'html2pdf.js';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
-export const generatePDF = async (elementRef, fileName = 'LKPD_Jawaban.pdf') => {
-  const element = elementRef.current;
-  if (!element) return;
-
-  const opt = {
-    margin: [10, 10, 10, 10], // Margin [atas, kiri, bawah, kanan] dalam mm
-    filename: fileName,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-  };
-
+export const generatePDF = async (pdfRef, fileName = 'LKPD_Siswa.pdf') => {
   try {
-    await html2pdf().set(opt).from(element).save();
+    const element = pdfRef.current;
+    if (!element) {
+      throw new Error('Elemen PDF tidak ditemukan di dalam DOM.');
+    }
+
+    // Pastikan elemen siap dibaca
+    const canvas = await html2canvas(element, {
+      scale: 2, // Skala 2 untuk kualitas gambar yang tajam
+      useCORS: true,
+      logging: false,
+      windowWidth: element.scrollWidth,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    let heightLeft = pdfHeight;
+    let position = 0;
+
+    // Cetak halaman pertama
+    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+    heightLeft -= pageHeight;
+
+    // Jika konten lebih dari 1 halaman A4, buat halaman baru secara otomatis
+    while (heightLeft > 0) {
+      position = heightLeft - pdfHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(fileName);
   } catch (error) {
-    console.error('Gagal membuat file PDF:', error);
-    alert('Terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.');
+    console.error('Error generating PDF:', error);
+    alert('Terjadi kesalahan saat mengunduh PDF. Pastikan koneksi stabil dan coba lagi.');
   }
 };
