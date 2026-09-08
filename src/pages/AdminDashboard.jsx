@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import QuestionForm from '../components/admin/QuestionForm';
 import { Plus, Save, BookOpen, CheckCircle, FileText } from 'lucide-react';
+import { supabase } from '../utils/supabase';
 
 export default function AdminDashboard({ onSaveLKPD, currentLKPD }) {
   const [lkpdMeta, setLkpdMeta] = useState({
@@ -69,6 +70,28 @@ export default function AdminDashboard({ onSaveLKPD, currentLKPD }) {
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
+
+  // Simpan ke Database Cloud (Supabase)
+  const handleSaveToDatabase = async (fullLKPD) => {
+  try {
+    const { data, error } = await supabase
+      .from('lkpds')
+      .upsert({
+        id: fullLKPD.id,
+        title: fullLKPD.title,
+        subject: fullLKPD.subject,
+        instructions: fullLKPD.instructions,
+        questions: fullLKPD.questions,
+      })
+      .select();
+
+    if (error) throw error;
+    alert('LKPD berhasil disimpan ke Database Cloud!');
+  } catch (err) {
+    console.error('Gagal menyimpan ke database:', err.message);
+    alert('Terjadi kesalahan saat menyimpan LKPD.');
+  }
+};
   // Salin Link LKPD
   // Tambahkan fungsi salin tautan di AdminDashboard.jsx
   const handleCopyLink = () => {
