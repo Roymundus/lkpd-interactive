@@ -166,9 +166,8 @@ export default function AdminDashboard({ onSaveLKPD }) {
 
   // Salin Link LKPD untuk Siswa
   const handleCopyLink = () => {
-    const vercelDomain = window.location.origin;
-    const shareUrl = `${vercelDomain}/?id=${lkpdMeta.id}`;
-    
+    const productionDomain = 'https://lkpd-interactive.vercel.app';
+    const shareUrl = `${productionDomain}/?id=${lkpdMeta.id}`;
     navigator.clipboard.writeText(shareUrl);
     alert(`Tautan berhasil disalin:\n${shareUrl}`);
   };
