@@ -11,22 +11,19 @@ const fallbackLKPD = {
   title: 'LKPD 1: Jaringan Komputer Dasar',
   subject: 'Informatika',
   instructions: 'Isilah data identitas Anda, lalu jawab pertanyaan-pertanyaan berikut dengan jelas.',
-  sections: [
-    {
-      title: 'Bagian Utama',
-      instructions: '',
-      questions: []
-    }
-  ],
+  sections: [],
+  questions: [],
 };
 
 export default function StudentPage({ lkpdData }) {
   const lkpd = lkpdData || fallbackLKPD;
-  const sections = lkpd.sections || [
-    { title: 'Bagian Umum', instructions: '', questions: lkpd.questions || [] }
-  ];
+  
+  // Amankan pengambilan sections, fallback ke format lama (questions) jika sections tidak ada
+  const sections = Array.isArray(lkpd.sections) && lkpd.sections.length > 0 
+    ? lkpd.sections 
+    : [{ title: 'Bagian Utama', instructions: '', questions: lkpd.questions || [] }];
 
-  const [answers, setAnswers] = useAutoSave(`lkpd_answers_${lkpd.id}`, {
+  const [answers, setAnswers] = useAutoSave(`lkpd_answers_${lkpd.id || 'default'}`, {
     identity: { name: '', className: '', studentId: '' },
     responses: {},
   });
@@ -42,14 +39,14 @@ export default function StudentPage({ lkpdData }) {
     setAnswers((prev) => ({
       ...prev,
       responses: {
-        ...prev.responses,
+        ...(prev.responses || {}),
         [questionId]: value,
       },
     }));
   };
 
   const handleDownloadPDF = async () => {
-    const { name, className } = answers.identity;
+    const { name, className } = answers.identity || {};
 
     if (!name || !className) {
       alert('Silakan isi Nama Lengkap dan Kelas pada bagian Identitas terlebih dahulu!');
@@ -65,7 +62,6 @@ export default function StudentPage({ lkpdData }) {
     setIsExporting(false);
   };
 
-  // Hitung penomoran soal global atau per section
   let globalQuestionCounter = 0;
 
   return (
@@ -76,7 +72,7 @@ export default function StudentPage({ lkpdData }) {
           <span className="text-xs font-semibold tracking-wide uppercase bg-blue-500 px-2.5 py-1 rounded-md">
             {lkpd.subject || 'Informatika'}
           </span>
-          <h1 className="text-xl sm:text-2xl font-bold mt-2">{lkpd.title}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mt-2">{lkpd.title || 'Tanpa Judul'}</h1>
           <p className="text-blue-100 text-xs sm:text-sm mt-1">{lkpd.instructions}</p>
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-blue-500/50">
             <div className="flex items-center gap-1.5 text-xs text-blue-200">
@@ -95,20 +91,20 @@ export default function StudentPage({ lkpdData }) {
             <div className="bg-slate-200/70 px-4 py-2.5 rounded-lg border border-slate-300 flex items-center gap-2">
               <Layers className="w-4 h-4 text-blue-600" />
               <div>
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">{sec.title}</h3>
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">{sec.title || `Bagian ${secIdx + 1}`}</h3>
                 {sec.instructions && <p className="text-[11px] text-slate-600">{sec.instructions}</p>}
               </div>
             </div>
 
-            {sec.questions?.map((q) => {
+            {Array.isArray(sec.questions) && sec.questions.map((q) => {
               globalQuestionCounter++;
               const qNum = globalQuestionCounter;
               return (
                 <QuestionView
-                  key={q.id}
+                  key={q.id || qNum}
                   number={qNum}
                   question={q}
-                  answer={answers.responses[q.id]}
+                  answer={answers.responses?.[q.id]}
                   onChange={(val) => handleQuestionChange(q.id, val)}
                 />
               );
