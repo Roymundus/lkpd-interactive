@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import QuestionForm from '../components/admin/QuestionForm';
-import { Plus, Save, BookOpen, CheckCircle, FileText, FolderOpen, RefreshCw, Trash2, Copy } from 'lucide-react';
+import { Plus, Save, BookOpen, CheckCircle, FileText, FolderOpen, RefreshCw, Trash2, Copy, Layers } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 
 export default function AdminDashboard({ onSaveLKPD }) {
@@ -11,13 +10,20 @@ export default function AdminDashboard({ onSaveLKPD }) {
     instructions: 'Isilah data identitas Anda, lalu jawablah pertanyaan berikut dengan teliti.',
   });
 
-  const [questions, setQuestions] = useState([]);
+  const [sections, setSections] = useState([
+    {
+      id: `sec_${Date.now()}`,
+      title: 'Bagian A: Pertanyaan Utama',
+      instructions: '',
+      questions: []
+    }
+  ]);
+
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [allLkpdList, setAllLkpdList] = useState([]);
   const [isLoadingList, setIsLoadingList] = useState(false);
 
-  // Ambil daftar semua LKPD yang pernah dibuat dari Supabase saat halaman dimuat
   useEffect(() => {
     fetchSavedLkpdList();
   }, []);
@@ -35,9 +41,8 @@ export default function AdminDashboard({ onSaveLKPD }) {
     setIsLoadingList(false);
   };
 
-  // Tombol untuk membuat LKPD baru (Reset Form & Generate ID Baru agar tidak menimpa yang lama)
   const handleNewLKPD = () => {
-    if (questions.length > 0 && !window.confirm('Buat LKPD baru? Perubahan yang belum disimpan pada form ini akan direset.')) {
+    if (sections.some(s => s.questions.length > 0) && !window.confirm('Buat LKPD baru? Perubahan yang belum disimpan akan direset.')) {
       return;
     }
     setLkpdMeta({
@@ -46,10 +51,16 @@ export default function AdminDashboard({ onSaveLKPD }) {
       subject: '',
       instructions: 'Isilah data identitas Anda, lalu jawablah pertanyaan berikut dengan teliti.',
     });
-    setQuestions([]);
+    setSections([
+      {
+        id: `sec_${Date.now()}`,
+        title: 'Bagian A: Pertanyaan Utama',
+        instructions: '',
+        questions: []
+      }
+    ]);
   };
 
-  // Pilih LKPD dari daftar untuk diedit
   const handleSelectLkpd = async (id) => {
     setIsLoadingList(true);
     const { data, error } = await supabase
@@ -67,12 +78,21 @@ export default function AdminDashboard({ onSaveLKPD }) {
         subject: data.subject,
         instructions: data.instructions,
       });
-      setQuestions(data.questions || []);
+      // Mendukung format lama (questions) maupun format baru (sections)
+      if (data.sections) {
+        setSections(data.sections);
+      } else if (data.questions) {
+        setSections([{
+          id: 'sec_legacy',
+          title: 'Bagian Umum',
+          instructions: '',
+          questions: data.questions
+        }]);
+      }
     }
     setIsLoadingList(false);
   };
 
-  // Hapus LKPD dari database
   const handleDeleteLkpd = async (id, e) => {
     e.stopPropagation();
     if (!window.confirm('Yakin ingin menghapus LKPD ini dari database?')) return;
@@ -88,48 +108,62 @@ export default function AdminDashboard({ onSaveLKPD }) {
     }
   };
 
-  // Tambah Soal Baru
-  const handleAddQuestion = () => {
-    const newQuestion = {
+  // Manajemen Section
+  const handleAddSection = () => {
+    const newSection = {
+      id: `sec_${Date.now()}`,
+      title: `Bagian ${String.fromCharCode(65 + sections.length)}`,
+      instructions: '',
+      questions: []
+    };
+    setSections([...sections, newSection]);
+  };
+
+  const handleSectionChange = (secIndex, field, value) => {
+    const updated = [...sections];
+    updated[secIndex][field] = value;
+    setSections(updated);
+  };
+
+  const handleDeleteSection = (secIndex) => {
+    if (sections.length === 1) {
+      alert('LKPD harus memiliki minimal satu bagian/section.');
+      return;
+    }
+    setSections(sections.filter((_, idx) => idx !== secIndex));
+  };
+
+  // Manajemen Soal dalam Section
+  const handleAddQuestion = (secIndex) => {
+    const updated = [...sections];
+    updated[secIndex].questions.push({
       id: `q_${Date.now()}`,
       type: 'text',
       questionText: '',
-    };
-    setQuestions([...questions, newQuestion]);
+    });
+    setSections(updated);
   };
 
-  // Update Soal
-  const handleQuestionChange = (index, updatedQuestion) => {
-    const updatedQuestions = [...questions];
-    updatedQuestions[index] = updatedQuestion;
-    setQuestions(updatedQuestions);
+  const handleQuestionChange = (secIndex, qIndex, field, value) => {
+    const updated = [...sections];
+    updated[secIndex].questions[qIndex][field] = value;
+    setSections(updated);
   };
 
-  // Hapus Soal
-  const handleDeleteQuestion = (index) => {
-    setQuestions(questions.filter((_, idx) => idx !== index));
+  const handleDeleteQuestion = (secIndex, qIndex) => {
+    const updated = [...sections];
+    updated[secIndex].questions = updated[secIndex].questions.filter((_, idx) => idx !== qIndex);
+    setSections(updated);
   };
 
-  // Pindah Urutan
-  const handleMove = (index, direction) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= questions.length) return;
-
-    const updatedQuestions = [...questions];
-    const temp = updatedQuestions[index];
-    updatedQuestions[index] = updatedQuestions[targetIndex];
-    updatedQuestions[targetIndex] = temp;
-    setQuestions(updatedQuestions);
-  };
-
-  // Simpan LKPD ke Database Supabase
   const handleSave = async () => {
     if (!lkpdMeta.title || !lkpdMeta.subject) {
       alert('Silakan isi Judul LKPD dan Mata Pelajaran terlebih dahulu!');
       return;
     }
 
-    if (questions.length === 0) {
+    const totalQuestions = sections.reduce((acc, sec) => acc + sec.questions.length, 0);
+    if (totalQuestions === 0) {
       alert('Tambahkan minimal 1 soal sebelum menyimpan!');
       return;
     }
@@ -141,30 +175,27 @@ export default function AdminDashboard({ onSaveLKPD }) {
         title: lkpdMeta.title,
         subject: lkpdMeta.subject,
         instructions: lkpdMeta.instructions,
-        questions: questions,
+        sections: sections,
+        questions: sections.flatMap(s => s.questions) // Kompatibilitas mundur
       };
 
       const { error } = await supabase.from('lkpds').upsert(fullLKPD);
-
       if (error) throw error;
 
-      if (onSaveLKPD) {
-        onSaveLKPD(fullLKPD);
-      }
+      if (onSaveLKPD) onSaveLKPD(fullLKPD);
 
       setSavedSuccess(true);
-      fetchSavedLkpdList(); // Perbarui daftar di sidebar
+      fetchSavedLkpdList();
       alert('LKPD berhasil disimpan ke Database Supabase!');
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err) {
-      console.error('Gagal menyimpan ke database:', err.message);
-      alert('Terjadi kesalahan saat menyimpan LKPD: ' + err.message);
+      console.error('Gagal menyimpan:', err.message);
+      alert('Terjadi kesalahan: ' + err.message);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Salin Link LKPD untuk Siswa
   const handleCopyLink = () => {
     const productionDomain = 'https://lkpd-interactive.vercel.app';
     const shareUrl = `${productionDomain}/?id=${lkpdMeta.id}`;
@@ -176,7 +207,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        {/* Sidebar: Daftar LKPD yang Pernah Dibuat */}
+        {/* Sidebar Arsip */}
         <div className="lg:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm h-fit space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
             <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -201,9 +232,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                   key={item.id}
                   onClick={() => handleSelectLkpd(item.id)}
                   className={`p-3 rounded-lg border text-left cursor-pointer transition-all flex items-start justify-between group ${
-                    lkpdMeta.id === item.id
-                      ? 'bg-blue-50 border-blue-300 shadow-sm'
-                      : 'bg-slate-50/50 border-slate-200 hover:bg-slate-100'
+                    lkpdMeta.id === item.id ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-slate-50/50 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
                   <div className="pr-2 overflow-hidden">
@@ -213,7 +242,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                   <button
                     onClick={(e) => handleDeleteLkpd(item.id, e)}
                     className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                    title="Hapus LKPD"
+                    title="Hapus"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -223,14 +252,12 @@ export default function AdminDashboard({ onSaveLKPD }) {
           </div>
         </div>
 
-        {/* Konten Utama: Form Pembuat LKPD */}
+        {/* Konten Utama Admin */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Header Admin */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <div>
               <div className="flex items-center gap-2 text-blue-600 font-semibold text-sm mb-1">
-                <BookOpen className="w-4 h-4" />
-                <span>Panel Guru / Admin</span>
+                <BookOpen className="w-4 h-4" /> <span>Panel Guru / Admin</span>
               </div>
               <h1 className="text-xl font-bold text-slate-800">
                 {allLkpdList.some(i => i.id === lkpdMeta.id) ? 'Edit LKPD' : 'Buat LKPD Baru'}
@@ -238,49 +265,23 @@ export default function AdminDashboard({ onSaveLKPD }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleNewLKPD}
-                className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> Reset Form
+              <button onClick={handleNewLKPD} className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5" /> Reset
               </button>
-
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5"
-              >
+              <button onClick={handleCopyLink} className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5">
                 <Copy className="w-3.5 h-3.5" /> Salin Link
               </button>
-
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <span>Menyimpan...</span>
-                ) : savedSuccess ? (
-                  <>
-                    <CheckCircle className="w-4 h-4" /> Berhasil!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" /> Simpan
-                  </>
-                )}
+              <button onClick={handleSave} disabled={isSaving} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow flex items-center gap-2 disabled:opacity-50">
+                {isSaving ? 'Menyimpan...' : savedSuccess ? <><CheckCircle className="w-4 h-4" /> Berhasil!</> : <><Save className="w-4 h-4" /> Simpan</>}
               </button>
             </div>
           </div>
 
-          {/* Form Meta Informasi LKPD */}
+          {/* Informasi Umum */}
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-500" /> Informasi Umum LKPD
             </h2>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Judul LKPD</label>
@@ -292,7 +293,6 @@ export default function AdminDashboard({ onSaveLKPD }) {
                   className="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran</label>
                 <input
@@ -304,61 +304,104 @@ export default function AdminDashboard({ onSaveLKPD }) {
                 />
               </div>
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Petunjuk Pengerjaan</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Petunjuk Pengerjaan Umum</label>
               <textarea
                 rows={2}
                 value={lkpdMeta.instructions}
                 onChange={(e) => setLkpdMeta({ ...lkpdMeta, instructions: e.target.value })}
-                placeholder="Tuliskan petunjuk umum pengerjaan untuk siswa..."
                 className="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          {/* Daftar Soal */}
-          <div>
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">Daftar Soal</h2>
-
-            {questions.length === 0 ? (
-              <div className="bg-white p-8 rounded-xl border border-dashed border-slate-300 text-center text-slate-500 mb-4">
-                <p className="text-sm mb-3">Belum ada soal pada LKPD ini.</p>
-                <button
-                  type="button"
-                  onClick={handleAddQuestion}
-                  className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-xs rounded-lg inline-flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" /> Tambah Soal Pertama
-                </button>
-              </div>
-            ) : (
-              questions.map((q, idx) => (
-                <QuestionForm
-                  key={q.id || idx}
-                  number={idx + 1}
-                  totalQuestions={questions.length}
-                  question={q}
-                  onChange={(updated) => handleQuestionChange(idx, updated)}
-                  onDelete={() => handleDeleteQuestion(idx)}
-                  onMoveUp={() => handleMove(idx, -1)}
-                  onMoveDown={() => handleMove(idx, 1)}
-                />
-              ))
-            )}
-
-            {questions.length > 0 && (
+          {/* Manajemen Sections & Soal */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-500" /> Pengaturan Section & Soal
+              </h2>
               <button
-                type="button"
-                onClick={handleAddQuestion}
-                className="w-full py-3 bg-white border-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50/50 font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-all"
+                onClick={handleAddSection}
+                className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold text-xs rounded-lg flex items-center gap-1.5"
               >
-                <Plus className="w-5 h-5" /> Tambah Soal Baru
+                <Plus className="w-4 h-4" /> Tambah Bagian (Section)
               </button>
-            )}
+            </div>
+
+            {sections.map((sec, secIndex) => (
+              <div key={sec.id || secIndex} className="bg-white p-6 rounded-xl border-2 border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b pb-3 gap-4">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={sec.title}
+                      onChange={(e) => handleSectionChange(secIndex, 'title', e.target.value)}
+                      placeholder="Judul Bagian (Contoh: Bagian A - Pilihan Ganda)"
+                      className="p-2 text-sm font-bold bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      value={sec.instructions || ''}
+                      onChange={(e) => handleSectionChange(secIndex, 'instructions', e.target.value)}
+                      placeholder="Instruksi khusus bagian ini (opsional)"
+                      className="p-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleDeleteSection(secIndex)}
+                    className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    title="Hapus Bagian Ini"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Soal dalam Section */}
+                <div className="space-y-3 pl-2 sm:pl-4 border-l-2 border-blue-100">
+                  {sec.questions.map((q, qIndex) => (
+                    <div key={q.id || qIndex} className="bg-slate-50 p-4 rounded-lg border border-slate-200 relative group space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-600">Soal #{qIndex + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={q.type}
+                            onChange={(e) => handleQuestionChange(secIndex, qIndex, 'type', e.target.value)}
+                            className="text-xs p-1 bg-white border border-slate-300 rounded-md"
+                          >
+                            <option value="text">Teks / Esai (Rich Text)</option>
+                            <option value="table">Tabel</option>
+                            <option value="image">Upload Gambar</option>
+                          </select>
+                          <button
+                            onClick={() => handleDeleteQuestion(secIndex, qIndex)}
+                            className="text-slate-400 hover:text-red-500 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={q.questionText}
+                        onChange={(e) => handleQuestionChange(secIndex, qIndex, 'questionText', e.target.value)}
+                        placeholder="Tuliskan pertanyaan di sini..."
+                        className="w-full p-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => handleAddQuestion(secIndex)}
+                    className="w-full py-2 bg-white border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Tambah Soal di Bagian Ini
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -1,43 +1,41 @@
 import React from 'react';
-import TableInput from './TableInput';
-import ImageUpload from './ImageUpload';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
-export default function QuestionView({ question, number, answer, onChange }) {
+export default function QuestionView({ number, question, answer, onChange }) {
+  const modules = {
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['clean']
+    ],
+  };
+
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 mb-4">
-      <div className="flex gap-3 mb-3">
-        <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 font-semibold rounded-full flex items-center justify-center text-sm">
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 mb-4">
+      <div className="flex items-start gap-3">
+        <span className="w-7 h-7 bg-blue-50 text-blue-600 font-bold text-xs rounded-full flex items-center justify-center shrink-0 mt-0.5">
           {number}
         </span>
-        <div className="text-slate-800 text-sm sm:text-base font-medium leading-relaxed pt-0.5">
-          {question.questionText}
+        <div className="space-y-1 flex-1">
+          <p className="text-sm font-semibold text-slate-800 whitespace-pre-wrap">{question.questionText}</p>
         </div>
       </div>
 
-      {/* Soal Jenis Teks / Paragraf */}
       {question.type === 'text' && (
-        <textarea
-          rows={4}
-          value={answer || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={question.placeholder || 'Ketik jawaban Anda di sini...'}
-          className="w-full p-3 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mt-2 rounded-lg overflow-hidden border border-slate-300 bg-white">
+          <ReactQuill
+            theme="snow"
+            value={answer || ''}
+            onChange={onChange}
+            modules={modules}
+            placeholder="Ketik jawaban Anda di sini (mendukung bold, italic, bullet, numbering)..."
+            className="text-sm"
+          />
+        </div>
       )}
 
-      {/* Soal Jenis Tabel */}
-      {question.type === 'table' && (
-        <TableInput
-          tableData={question.tableData}
-          answer={answer}
-          onChange={(val) => onChange(val)}
-        />
-      )}
-
-      {/* Soal Jenis Unggah Gambar */}
-      {question.type === 'image' && (
-        <ImageUpload value={answer} onChange={(val) => onChange(val)} />
-      )}
+      {/* Tambahan penanganan tipe lain jika diperlukan */}
     </div>
   );
 }

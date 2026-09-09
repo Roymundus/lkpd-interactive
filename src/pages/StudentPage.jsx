@@ -4,18 +4,28 @@ import IdentityForm from '../components/student/IdentityForm';
 import QuestionView from '../components/student/QuestionView';
 import PDFTemplate from '../components/student/PDFTemplate';
 import { generatePDF } from '../utils/generatePDF';
-import { Save, Download, Loader2 } from 'lucide-react';
+import { Save, Download, Loader2, Layers } from 'lucide-react';
 
 const fallbackLKPD = {
   id: 'lkpd-01',
   title: 'LKPD 1: Jaringan Komputer Dasar',
   subject: 'Informatika',
   instructions: 'Isilah data identitas Anda, lalu jawab pertanyaan-pertanyaan berikut dengan jelas.',
-  questions: [],
+  sections: [
+    {
+      title: 'Bagian Utama',
+      instructions: '',
+      questions: []
+    }
+  ],
 };
 
 export default function StudentPage({ lkpdData }) {
   const lkpd = lkpdData || fallbackLKPD;
+  const sections = lkpd.sections || [
+    { title: 'Bagian Umum', instructions: '', questions: lkpd.questions || [] }
+  ];
+
   const [answers, setAnswers] = useAutoSave(`lkpd_answers_${lkpd.id}`, {
     identity: { name: '', className: '', studentId: '' },
     responses: {},
@@ -55,11 +65,14 @@ export default function StudentPage({ lkpdData }) {
     setIsExporting(false);
   };
 
+  // Hitung penomoran soal global atau per section
+  let globalQuestionCounter = 0;
+
   return (
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Header LKPD */}
-        <div className="bg-blue-600 text-white p-6 rounded-xl shadow-md mb-6">
+        <div className="bg-blue-600 text-white p-6 rounded-xl shadow-md">
           <span className="text-xs font-semibold tracking-wide uppercase bg-blue-500 px-2.5 py-1 rounded-md">
             {lkpd.subject || 'Informatika'}
           </span>
@@ -76,15 +89,31 @@ export default function StudentPage({ lkpdData }) {
         {/* Form Identitas */}
         <IdentityForm identity={answers.identity} onChange={handleIdentityChange} />
 
-        {/* Daftar Soal */}
-        {lkpd.questions?.map((q, index) => (
-          <QuestionView
-            key={q.id || index}
-            number={index + 1}
-            question={q}
-            answer={answers.responses[q.id]}
-            onChange={(val) => handleQuestionChange(q.id, val)}
-          />
+        {/* Daftar Section & Soal */}
+        {sections.map((sec, secIdx) => (
+          <div key={sec.id || secIdx} className="space-y-4">
+            <div className="bg-slate-200/70 px-4 py-2.5 rounded-lg border border-slate-300 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-blue-600" />
+              <div>
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">{sec.title}</h3>
+                {sec.instructions && <p className="text-[11px] text-slate-600">{sec.instructions}</p>}
+              </div>
+            </div>
+
+            {sec.questions?.map((q) => {
+              globalQuestionCounter++;
+              const qNum = globalQuestionCounter;
+              return (
+                <QuestionView
+                  key={q.id}
+                  number={qNum}
+                  question={q}
+                  answer={answers.responses[q.id]}
+                  onChange={(val) => handleQuestionChange(q.id, val)}
+                />
+              );
+            })}
+          </div>
         ))}
 
         {/* Tombol Download PDF */}
