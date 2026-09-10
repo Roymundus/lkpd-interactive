@@ -97,7 +97,7 @@ export default function QuestionView({ number, question, answer, onChange }) {
             rows={5}
             value={answer || ''}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Ketik jawaban Anda di sini..."
+            placeholder="Ketik jawaban atau analisis kelompok di sini (mendukung format bold, italic, list)..."
             className="w-full p-3 text-sm focus:outline-none bg-white text-slate-800 resize-y"
           />
         </div>

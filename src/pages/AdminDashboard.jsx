@@ -5,17 +5,19 @@ import { supabase } from '../utils/supabase';
 export default function AdminDashboard({ onSaveLKPD }) {
   const [lkpdMeta, setLkpdMeta] = useState({
     id: `lkpd_${Date.now()}`,
-    title: '',
-    subject: '',
-    instructions: 'Isilah data identitas Anda, lalu jawablah pertanyaan berikut dengan teliti.',
+    title: 'LKPD: Mengenal dan Menganalisis Sistem Komputer',
+    subject: 'Informatika',
+    instructions: 'Isilah data identitas kelompok Anda, lalu diskusikan setiap bagian aktivitas dengan teliti.',
   });
 
   const [sections, setSections] = useState([
     {
       id: `sec_${Date.now()}`,
-      title: 'Bagian A: Pertanyaan Utama',
-      instructions: '',
-      questions: []
+      title: 'Bagian 1: Komputer Atau Bukan?',
+      instructions: 'Tentukan apakah perangkat dikategorikan sebagai komputer berdasarkan syarat input, proses, dan output.',
+      questions: [
+        { id: `q_${Date.now()}_1`, type: 'text', questionText: 'Analisis perangkat (Laptop, Smartphone, Kalkulator, dll.) apakah termasuk komputer dan berikan alasannya.' }
+      ]
     }
   ]);
 
@@ -54,7 +56,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
     setSections([
       {
         id: `sec_${Date.now()}`,
-        title: 'Bagian A: Pertanyaan Utama',
+        title: 'Bagian 1: Bagian Utama',
         instructions: '',
         questions: []
       }
@@ -78,7 +80,6 @@ export default function AdminDashboard({ onSaveLKPD }) {
         subject: data.subject,
         instructions: data.instructions,
       });
-      // Mendukung format lama (questions) maupun format baru (sections)
       if (data.sections) {
         setSections(data.sections);
       } else if (data.questions) {
@@ -108,11 +109,10 @@ export default function AdminDashboard({ onSaveLKPD }) {
     }
   };
 
-  // Manajemen Section
   const handleAddSection = () => {
     const newSection = {
       id: `sec_${Date.now()}`,
-      title: `Bagian ${String.fromCharCode(65 + sections.length)}`,
+      title: `Bagian ${sections.length + 1}`,
       instructions: '',
       questions: []
     };
@@ -133,7 +133,6 @@ export default function AdminDashboard({ onSaveLKPD }) {
     setSections(sections.filter((_, idx) => idx !== secIndex));
   };
 
-  // Manajemen Soal dalam Section
   const handleAddQuestion = (secIndex) => {
     const updated = [...sections];
     updated[secIndex].questions.push({
@@ -176,7 +175,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
         subject: lkpdMeta.subject,
         instructions: lkpdMeta.instructions,
         sections: sections,
-        questions: sections.flatMap(s => s.questions) // Kompatibilitas mundur
+        questions: sections.flatMap(s => s.questions)
       };
 
       const { error } = await supabase.from('lkpds').upsert(fullLKPD);
@@ -289,7 +288,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                   type="text"
                   value={lkpdMeta.title}
                   onChange={(e) => setLkpdMeta({ ...lkpdMeta, title: e.target.value })}
-                  placeholder="Contoh: LKPD 1 - Jaringan Komputer"
+                  placeholder="Contoh: LKPD - Mengenal Sistem Komputer"
                   className="w-full p-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -319,13 +318,13 @@ export default function AdminDashboard({ onSaveLKPD }) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-500" /> Pengaturan Section & Soal
+                <Layers className="w-4 h-4 text-blue-500" /> Struktur Bagian (Sections) & Soal LKM
               </h2>
               <button
                 onClick={handleAddSection}
                 className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold text-xs rounded-lg flex items-center gap-1.5"
               >
-                <Plus className="w-4 h-4" /> Tambah Bagian (Section)
+                <Plus className="w-4 h-4" /> Tambah Bagian Baru
               </button>
             </div>
 
@@ -337,7 +336,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                       type="text"
                       value={sec.title}
                       onChange={(e) => handleSectionChange(secIndex, 'title', e.target.value)}
-                      placeholder="Judul Bagian (Contoh: Bagian A - Pilihan Ganda)"
+                      placeholder="Judul Bagian (Contoh: Bagian 1: Komputer Atau Bukan?)"
                       className="p-2 text-sm font-bold bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <input
@@ -362,7 +361,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                   {sec.questions.map((q, qIndex) => (
                     <div key={q.id || qIndex} className="bg-slate-50 p-4 rounded-lg border border-slate-200 relative group space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600">Soal #{qIndex + 1}</span>
+                        <span className="text-xs font-bold text-slate-600">Pertanyaan/Aktivitas #{qIndex + 1}</span>
                         <div className="flex items-center gap-2">
                           <select
                             value={q.type}
@@ -370,7 +369,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                             className="text-xs p-1 bg-white border border-slate-300 rounded-md"
                           >
                             <option value="text">Teks / Esai (Rich Text)</option>
-                            <option value="table">Tabel</option>
+                            <option value="table">Tabel Analisis</option>
                             <option value="image">Upload Gambar</option>
                           </select>
                           <button
@@ -385,7 +384,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                         rows={2}
                         value={q.questionText}
                         onChange={(e) => handleQuestionChange(secIndex, qIndex, 'questionText', e.target.value)}
-                        placeholder="Tuliskan pertanyaan di sini..."
+                        placeholder="Tuliskan pertanyaan atau deskripsi aktivitas di sini..."
                         className="w-full p-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -395,7 +394,7 @@ export default function AdminDashboard({ onSaveLKPD }) {
                     onClick={() => handleAddQuestion(secIndex)}
                     className="w-full py-2 bg-white border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-all"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Tambah Soal di Bagian Ini
+                    <Plus className="w-3.5 h-3.5" /> Tambah Pertanyaan/Aktivitas di Bagian Ini
                   </button>
                 </div>
               </div>
